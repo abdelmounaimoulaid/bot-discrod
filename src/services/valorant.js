@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { createRateLimiter } = require('./rate-limiter');
 
 const BASE_URL = 'https://api.henrikdev.xyz/valorant';
 
@@ -23,6 +24,13 @@ function normalizeRegion(region = 'eu') {
     return REGION_MAP[clean] || 'eu';
 }
 
+// HenrikDev basic keys allow 30 requests / minute; 2.1s spacing stays under it.
+const schedule = createRateLimiter(() => Number(process.env.HENRIK_MIN_GAP_MS ?? 2100));
+
+function henrikGet(url, priority) {
+    return schedule(() => axios.get(url, { headers: getHeaders(), timeout: 10000 }), { priority });
+}
+
 function getHeaders() {
     const key = process.env.VALORANT_API_KEY;
     if (!key) throw new Error('Missing VALORANT_API_KEY in environment variables.');
@@ -32,25 +40,32 @@ function getHeaders() {
     };
 }
 
-async function getValorantAccount(name, tag) {
+async function getValorantAccount(name, tag, { priority = false } = {}) {
     const url = `${BASE_URL}/v1/account/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}`;
-    const res = await axios.get(url, { headers: getHeaders(), timeout: 10000 });
+    const res = await henrikGet(url, priority);
     return res.data?.data;
 }
 
-async function getValorantMmr(region, name, tag) {
+async function getValorantMmr(region, name, tag, { priority = false } = {}) {
     const normRegion = normalizeRegion(region);
     const url = `${BASE_URL}/v2/mmr/${normRegion}/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}`;
-    const res = await axios.get(url, { headers: getHeaders(), timeout: 10000 });
+    const res = await henrikGet(url, priority);
     return res.data?.data;
 }
 
-async function fetchValorantPlayerData(name, tag, region = 'eu') {
+// Most recent competitive matches, newest first.
+async function getValorantRecentMatches(region, name, tag, size = 1, { priority = false } = {}) {
+    const url = `${BASE_URL}/v3/matches/${normalizeRegion(region)}/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?mode=competitive&size=${size}`;
+    const res = await henrikGet(url, priority);
+    return res.data?.data || [];
+}
+
+async function fetchValorantPlayerData(name, tag, region = 'eu', { priority = false } = {}) {
     const normRegion = normalizeRegion(region);
     let mmrError = null;
     const [account, mmr] = await Promise.all([
-        getValorantAccount(name, tag).catch(() => null),
-        getValorantMmr(normRegion, name, tag).catch(error => { mmrError = error; return null; })
+        getValorantAccount(name, tag, { priority }).catch(() => null),
+        getValorantMmr(normRegion, name, tag, { priority }).catch(error => { mmrError = error; return null; })
     ]);
 
     // A 404 means the player has no rank data; anything else (429, 5xx, timeout)
@@ -104,7 +119,10 @@ async function fetchValorantPlayerData(name, tag, region = 'eu') {
         ranking_in_tier: rankingInTier,
         elo,
         wins,
-        number_of_games: numberOfGames
+        number_of_games: numberOfGames,
+        // Not stored: used for rank-up and match recap cards.
+        rank_image: current?.images?.small || null,
+        last_rr_change: current?.mmr_change_to_last_game ?? null
     };
 }
 
@@ -112,5 +130,6 @@ module.exports = {
     normalizeRegion,
     getValorantAccount,
     getValorantMmr,
+    getValorantRecentMatches,
     fetchValorantPlayerData
 };

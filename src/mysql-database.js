@@ -48,6 +48,8 @@ function createDatabase(env = process.env, driver = mysql, { startupAttempts = 5
             "ALTER TABLE players ADD COLUMN flex_wins INT NOT NULL DEFAULT 0",
             "ALTER TABLE players ADD COLUMN flex_losses INT NOT NULL DEFAULT 0",
             "ALTER TABLE dashboard_messages ADD COLUMN flex_message_id VARCHAR(20) DEFAULT NULL",
+            "ALTER TABLE players ADD COLUMN last_match_id VARCHAR(64) DEFAULT NULL",
+            "ALTER TABLE valorant_players ADD COLUMN last_match_id VARCHAR(64) DEFAULT NULL",
         ]) {
             try { await pool.query(col); } catch (e) { /* ignore errno 1060 — column already exists */ }
         }

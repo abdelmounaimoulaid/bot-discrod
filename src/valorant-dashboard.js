@@ -1,5 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown } = require('discord.js');
 const { buildValorantRoleSelectMenu, agentIcon } = require('./valorant-roles');
+const { progressBar } = require('./ladder');
+const { movementArrow, placeLabel } = require('./movement');
 
 const VALORANT_RANK_ICONS = {
     Radiant: '🔥',
@@ -45,7 +47,8 @@ function buildValorantLinkPanel(emojis) {
     };
 }
 
-function buildValorantDashboardEmbed(players = [], emojis) {
+// `movement` maps discord_id -> places moved since the previous refresh.
+function buildValorantDashboardEmbed(players = [], emojis, movement = new Map()) {
     const embed = new EmbedBuilder()
         .setTitle('🔴 VALORANT • Competitive Leaderboard')
         .setColor(0xFD4556)
@@ -71,7 +74,7 @@ function buildValorantDashboardEmbed(players = [], emojis) {
 
         const rankStr = tierName.toLowerCase() === 'unrated' || tierName.toLowerCase() === 'unranked'
             ? 'Unrated'
-            : `${icon} ${tierName} – **${rr} RR**`;
+            : `${icon} ${tierName} – **${rr} RR**${baseTier === 'Radiant' || index > 2 ? '' : ` ${progressBar(rr)}`}`;
 
         const wins = player.wins || 0;
         const totalGames = player.number_of_games || 0;
@@ -82,7 +85,7 @@ function buildValorantDashboardEmbed(players = [], emojis) {
 
         const name = (player.riot_id || 'Unknown').replace(/[\r\n\t]/g, ' ');
         const shortName = name.length > 15 ? `${name.slice(0, 14)}…` : name;
-        const row = [roleIcon, `**#${index + 1}** ${escapeMarkdown(shortName)}`, `${rankStr} • **${winRate}**`];
+        const row = [roleIcon, `${placeLabel(index)} ${escapeMarkdown(shortName)}${movementArrow(movement.get(player.discord_id))}`, `${rankStr} • **${winRate}**`];
 
         if (shown === 25 || columns.some((column, i) => column.value.length + row[i].length + (shown ? 1 : 0) > 1024)) break;
         columns.forEach((column, i) => { column.value += `${shown ? '\n' : ''}${row[i]}`; });
@@ -97,7 +100,7 @@ function buildValorantDashboardEmbed(players = [], emojis) {
     return embed;
 }
 
-function createValorantDashboardUpdater({ client, db, channelId, linkChannelId }) {
+function createValorantDashboardUpdater({ client, db, channelId, linkChannelId, getMovement = () => new Map() }) {
     let queue = Promise.resolve();
 
     async function syncLinkPanel(channel) {
@@ -132,7 +135,7 @@ function createValorantDashboardUpdater({ client, db, channelId, linkChannelId }
             }
         } catch {}
 
-        const embed = buildValorantDashboardEmbed(players, channel.guild?.emojis?.cache);
+        const embed = buildValorantDashboardEmbed(players, channel.guild?.emojis?.cache, getMovement(players));
         const payload = { embeds: [embed], allowedMentions: { parse: [] } };
 
         if (message) {

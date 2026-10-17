@@ -38,15 +38,45 @@ const {
   createValorantDashboardUpdater,
   buildValorantLinkPanel,
 } = require("./valorant-dashboard");
+const { leagueScore } = require("./ladder");
+const { createMovementTracker } = require("./movement");
+const { createGameEvents } = require("./game-events");
+const { createLpRace } = require("./lp-race");
+const { createLiveGameWatcher } = require("./live-games");
+const { createInhouse } = require("./inhouse");
+const { createLfg } = require("./lfg");
+const { createMastery } = require("./mastery");
+const { handleProfileCommand } = require("./profile-card");
+const { handleStatusCommand } = require("./status");
+const { buildWelcomeMessage, sendWelcome } = require("./welcome");
+const { fetchMemberState, removeDeparted, isManagedGuild } = require("./member-cleanup");
+const { recordRefresh, recordApiError } = require("./bot-status");
+
+// Welcome messages and instant leave-cleanup need the privileged Server Members
+// intent. Requesting it without enabling it in the Developer Portal makes login
+// fail, so it is opt-in.
+const MEMBER_EVENTS_ENABLED = process.env.ENABLE_MEMBER_EVENTS === "true";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    ...(MEMBER_EVENTS_ENABLED ? [GatewayIntentBits.GuildMembers] : []),
+  ],
 });
 
 require("./client-errors").registerClientErrors(client);
 require("./client-errors").registerProcessErrors(process);
 
 require("./voice-rooms").registerVoiceRooms(client, db);
+
+const gameEvents = createGameEvents({ client, db });
+const lpRace = createLpRace({ client, db });
+const liveGames = createLiveGameWatcher({ client, db });
+const inhouse = createInhouse({ db });
+const lfg = createLfg({ db });
+const mastery = createMastery({ db });
+const movement = createMovementTracker();
 
 // ============================================================
 // CONFIG
@@ -117,8 +147,16 @@ function getWinRate(wins, losses) {
 
 // Without the GuildMembers intent the member cache never hears about role
 // changes made elsewhere, so always read the member's current roles from Discord.
-function fetchMember(guild, discordId) {
-  return guild.members.fetch({ user: discordId, force: true }).catch(() => null);
+// Returns null when the member is unavailable; if they left the server, their
+// linked accounts are removed so they drop off the leaderboards.
+async function fetchMember(guild, discordId) {
+  const { member, gone } = await fetchMemberState(guild, discordId);
+  if (gone && isManagedGuild(client, guild)) {
+    await removeDeparted(db, discordId, "left the server").catch((error) =>
+      console.error(`Could not remove departed member ${discordId}:`, error.message),
+    );
+  }
+  return member || null;
 }
 
 // Runs the task at most once at a time: a refresh still waiting on slow API calls
@@ -189,9 +227,10 @@ async function buildDashboardEmbed(guild, queueType = 'SOLO') {
       if (divisionDifference !== 0) return divisionDifference;
       return (b.flex_league_points || 0) - (a.flex_league_points || 0);
     });
-    return renderDashboard(flexSorted, emojis, 'FLEX');
+    return renderDashboard(flexSorted, emojis, 'FLEX', movement.deltas('lol:FLEX', flexSorted.map(p => p.discord_id)));
   }
-  return renderDashboard(sortPlayers(allPlayers), emojis, 'SOLO');
+  const soloSorted = sortPlayers(allPlayers);
+  return renderDashboard(soloSorted, emojis, 'SOLO', movement.deltas('lol:SOLO', soloSorted.map(p => p.discord_id)));
 }
 
 const persistDashboard = createDashboardUpdater({
@@ -257,6 +296,8 @@ async function updateAllPlayers() {
       client.guilds.cache.get(process.env.DISCORD_GUILD_ID)) ||
     client.guilds.cache.first();
 
+  const startedAt = Date.now();
+  const baselines = [];
   for (const player of players) {
     try {
       const rankedEntries = await getRanked(player.puuid, player.region);
@@ -298,7 +339,8 @@ async function updateAllPlayers() {
         if (guild) {
           try {
             const member = await fetchMember(guild, player.discord_id);
-            if (member) await syncRankRole(member, "UNRANKED");
+            if (!member) continue;
+            await syncRankRole(member, "UNRANKED");
           } catch (err) {
             console.error(
               `Failed to sync rank role for ${player.discord_id}:`,
@@ -307,6 +349,7 @@ async function updateAllPlayers() {
           }
         }
 
+        await gameEvents.afterLeagueUpdate({ player, solo: null, flex: flexQueue || null });
         continue;
       }
 
@@ -335,7 +378,8 @@ async function updateAllPlayers() {
       if (guild) {
         try {
           const member = await fetchMember(guild, player.discord_id);
-          if (member) await syncRankRole(member, soloQueue.tier);
+          if (!member) continue;
+          await syncRankRole(member, soloQueue.tier);
         } catch (err) {
           console.error(
             `Failed to sync rank role for ${player.discord_id}:`,
@@ -343,7 +387,14 @@ async function updateAllPlayers() {
           );
         }
       }
+
+      baselines.push({
+        discord_id: player.discord_id,
+        score: leagueScore(soloQueue.tier, soloQueue.rank, soloQueue.leaguePoints),
+      });
+      await gameEvents.afterLeagueUpdate({ player, solo: soloQueue, flex: flexQueue || null });
     } catch (error) {
+      recordApiError("riot", error);
       console.error(`❌ Failed to update ${player.riot_id}#${player.tag}`);
 
       if (error.response) {
@@ -353,6 +404,23 @@ async function updateAllPlayers() {
       }
     }
   }
+
+  await lpRace.recordBaselines("LOL", baselines).catch((error) =>
+    console.error("Could not record weekly LP baselines:", error.message),
+  );
+  recordRefresh("league", { startedAt, players: players.length });
+}
+
+// Moves the "previous refresh" order forward so dashboard arrows show movement
+// since the last periodic refresh.
+async function advanceLeagueMovement() {
+  const allPlayers = await db.prepare("SELECT * FROM players").all();
+  movement.advance("lol:SOLO", sortPlayers([...allPlayers]).map((p) => p.discord_id));
+  const flexSorted = [...allPlayers].sort((a, b) =>
+    (leagueScore(b.flex_tier, b.flex_rank, b.flex_league_points) ?? -1) -
+    (leagueScore(a.flex_tier, a.flex_rank, a.flex_league_points) ?? -1),
+  );
+  movement.advance("lol:FLEX", flexSorted.map((p) => p.discord_id));
 }
 
 // ============================================================
@@ -364,6 +432,9 @@ const refreshDashboard = singleFlight("League leaderboard refresh", async () => 
   console.log("🔄 Starting leaderboard refresh...");
 
   await updateAllPlayers();
+  await advanceLeagueMovement().catch((error) =>
+    console.error("Could not track leaderboard movement:", error.message),
+  );
   await updateDashboard();
 
   console.log("✅ Leaderboard refresh completed.");
@@ -379,6 +450,7 @@ const persistValorantDashboard = createValorantDashboardUpdater({
   db,
   channelId: VALORANT_LEADERBOARD_CHANNEL_ID,
   linkChannelId: VALORANT_LINK_CHANNEL_ID,
+  getMovement: (players) => movement.deltas("val", players.map((p) => p.discord_id)),
 });
 
 async function updateAllValorantPlayers() {
@@ -413,6 +485,8 @@ async function updateAllValorantPlayers() {
 
   const guild = (process.env.DISCORD_GUILD_ID && client.guilds.cache.get(process.env.DISCORD_GUILD_ID)) || client.guilds.cache.first();
 
+  const startedAt = Date.now();
+  const baselines = [];
   for (const player of players) {
     try {
       const data = await fetchValorantPlayerData(player.riot_id, player.tag, player.region);
@@ -436,20 +510,45 @@ async function updateAllValorantPlayers() {
 
       if (guild) {
         const member = await fetchMember(guild, player.discord_id);
-        if (member) {
-          await syncValorantRankRole(member, data.tier_name);
-        }
+        if (!member) continue;
+        await syncValorantRankRole(member, data.tier_name);
       }
+
+      if (data.current_tier >= 3) baselines.push({ discord_id: player.discord_id, score: data.elo });
+      await gameEvents.afterValorantUpdate({ player, data });
     } catch (err) {
+      recordApiError("henrik", err);
       console.error(`❌ Failed to update Valorant player ${player.riot_id}#${player.tag}:`, err.message);
     }
   }
+
+  await lpRace.recordBaselines("VAL", baselines).catch((error) =>
+    console.error("Could not record weekly RR baselines:", error.message),
+  );
+  recordRefresh("valorant", { startedAt, players: players.length });
 }
 
 const refreshValorantDashboard = singleFlight("Valorant leaderboard refresh", async () => {
   await updateAllValorantPlayers();
+  try {
+    const ordered = await db.prepare("SELECT discord_id FROM valorant_players ORDER BY elo DESC, ranking_in_tier DESC").all();
+    movement.advance("val", ordered.map((p) => p.discord_id));
+  } catch (error) {
+    console.error("Could not track Valorant leaderboard movement:", error.message);
+  }
   await persistValorantDashboard();
 });
+
+// Both games record their weekly baselines during refresh; the Monday post
+// needs both, so it runs after both refreshes settle.
+function refreshAll(label) {
+  return Promise.allSettled([
+    refreshDashboard().catch((err) => console.error(`❌ ${label} League leaderboard refresh failed:`, err)),
+    refreshValorantDashboard().catch((err) => console.error(`❌ ${label} Valorant leaderboard refresh failed:`, err)),
+  ]).then(() =>
+    lpRace.maybePost().catch((err) => console.error("❌ Weekly LP race post failed:", err)),
+  );
+}
 
 // ============================================================
 // LINK PANEL
@@ -503,16 +602,62 @@ client.once("ready", async () => {
     console.error("❌ Patch notes poster failed to start:", err);
   }
 
-  // Initial leaderboard refreshes
-  refreshDashboard().catch(err => console.error("❌ Initial League leaderboard refresh failed:", err));
-  refreshValorantDashboard().catch(err => console.error("❌ Initial Valorant leaderboard refresh failed:", err));
+  // Initial leaderboard refreshes, then every 5 minutes
+  refreshAll("Initial");
+  setInterval(() => refreshAll("Periodic"), DASHBOARD_REFRESH_INTERVAL);
 
-  // Refresh every 5 minutes
-  setInterval(async () => {
-    refreshDashboard().catch(err => console.error("❌ Periodic League leaderboard refresh failed:", err));
-    refreshValorantDashboard().catch(err => console.error("❌ Periodic Valorant leaderboard refresh failed:", err));
-  }, DASHBOARD_REFRESH_INTERVAL);
+  liveGames.start();
 });
+
+// ============================================================
+// MEMBER EVENTS (opt-in: needs the Server Members intent)
+// ============================================================
+
+if (MEMBER_EVENTS_ENABLED) {
+  client.on("guildMemberAdd", (member) => {
+    sendWelcome(client, member).catch((error) =>
+      console.error("Could not send welcome message:", error.message),
+    );
+  });
+  client.on("guildMemberRemove", (member) => {
+    if (!isManagedGuild(client, member.guild)) return;
+    removeDeparted(db, member.id, "left the server")
+      .then(() => Promise.allSettled([updateDashboard(), persistValorantDashboard()]))
+      .catch((error) => console.error("Could not clean up departed member:", error.message));
+  });
+}
+
+// ============================================================
+// SLASH COMMANDS
+// ============================================================
+
+async function handleChatCommand(interaction) {
+  switch (interaction.commandName) {
+    case "profile":
+      return handleProfileCommand(interaction, db);
+    case "mastery":
+      return mastery.handleCommand(interaction);
+    case "inhouse":
+      return inhouse.handleCommand(interaction);
+    case "lfg":
+      return lfg.handleCommand(interaction);
+    case "status":
+      return handleStatusCommand(interaction, {
+        client,
+        db,
+        memberEventsEnabled: MEMBER_EVENTS_ENABLED,
+        liveWatcher: liveGames,
+      });
+    case "welcome-preview":
+      return interaction.reply({
+        ...buildWelcomeMessage(interaction.member),
+        allowedMentions: { parse: [] },
+        flags: MessageFlags.Ephemeral,
+      });
+    default:
+      return interaction.reply({ content: "Unknown command.", flags: MessageFlags.Ephemeral });
+  }
+}
 
 // ============================================================
 // INTERACTIONS
@@ -520,6 +665,19 @@ client.once("ready", async () => {
 
 client.on("interactionCreate", async (interaction) => {
   try {
+  if (interaction.isChatInputCommand?.()) {
+    await handleChatCommand(interaction);
+    return;
+  }
+  if (
+    interaction.isButton?.() &&
+    ((await liveGames.handleInteraction(interaction)) ||
+      (await inhouse.handleButton(interaction)) ||
+      (await lfg.handleButton(interaction)))
+  ) {
+    return;
+  }
+
   // ========================================================
   // LINK BUTTON
   // ========================================================
@@ -610,7 +768,7 @@ client.on("interactionCreate", async (interaction) => {
       const summoner = await getSummoner(puuid, region);
 
       // Get ranked data
-      const rankedEntries = await getRanked(puuid, region);
+      const rankedEntries = await getRanked(puuid, region, { priority: true });
 
       const soloQueue = rankedEntries.find(
         (entry) => entry.queueType === "RANKED_SOLO_5x5",
@@ -912,7 +1070,7 @@ client.on("interactionCreate", async (interaction) => {
     const region = interaction.fields.getTextInputValue("valorant_region").trim().toLowerCase();
 
     try {
-      const data = await fetchValorantPlayerData(riotId, tag, region);
+      const data = await fetchValorantPlayerData(riotId, tag, region, { priority: true });
 
       const savePlayer = db.prepare(`
         INSERT INTO valorant_players (

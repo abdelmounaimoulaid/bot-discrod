@@ -38,3 +38,41 @@ League uses its configured League role IDs. Valorant rank role names must includ
 Valorant or VAL, for example: Valorant Diamond, Valorant Gold, Valorant Unranked.
 Use separate roles for each game. Unlabelled/shared rank roles are not managed by
 Valorant, so its refresh cannot remove a League rank. Unchanged roles are left alone.
+
+===================================================================
+NEW FEATURES (October 2026)
+===================================================================
+After uploading, run `npm install` (adds the optional image library for
+/profile) and then `npm run deploy` ONCE to register the slash commands:
+  /profile, /mastery player|server, /inhouse, /lfg, /status, /welcome-preview
+
+Announcement channel (required for automatic posts):
+  ANNOUNCEMENTS_CHANNEL_ID=<channel id>
+  Used for rank-up announcements, match recap cards, live game alerts,
+  the weekly LP race and welcome messages. Override any of them with
+  RANK_UP_CHANNEL_ID, MATCH_RECAP_CHANNEL_ID, LIVE_GAMES_CHANNEL_ID,
+  LP_RACE_CHANNEL_ID, WELCOME_CHANNEL_ID. Without a channel, that feature
+  stays off (and live game polling is skipped to save Riot rate limit).
+
+Welcome messages + instant leave cleanup (optional):
+  1. Discord Developer Portal -> your app -> Bot -> enable
+     "Server Members Intent".
+  2. Set ENABLE_MEMBER_EVENTS=true.
+  Do step 1 first: without it, Discord rejects the login.
+  Without these, departed members are still removed during the 5-minute
+  refresh. Use /welcome-preview to see the welcome message.
+
+Weekly LP race:
+  Posted on Mondays at 10:00 UTC (LP_RACE_POST_HOUR_UTC) in the LP race
+  channel. The first results appear one full week after this update,
+  because it needs a starting point for each player. The winner gets the
+  "Climber of the Week" role (created automatically; the bot's role must be
+  above it).
+
+Permissions the bot needs: Manage Roles, Manage Channels, Move Members
+(inhouse and duo voice channels), Send Messages, Embed Links, Attach Files.
+
+Rate limits: Riot calls are spaced 1.25s apart (development key safe),
+HenrikDev calls 2.1s apart. Interactive actions (linking, buttons) skip
+the queue. Use /status to see refresh times and API errors.
+===================================================================

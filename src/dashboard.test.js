@@ -75,7 +75,7 @@ test('table keeps lane, summoners, and rank & win rate in matching columns', () 
     const embed = buildDashboardEmbed([player]).toJSON();
     assert.deepEqual(embed.fields.map(field => field.name), ['Lane', 'Summoners', 'Rank & Win rate']);
     assert.ok(embed.fields.every(field => field.inline));
-    assert.match(embed.fields[1].value, /\*\*#1\*\* Player/);
+    assert.match(embed.fields[1].value, /🥇 Player/);
     assert.match(embed.fields[2].value, /DIAMOND IV – \*\*98 LP\*\*/);
     assert.match(embed.fields[2].value, /53\.3%/);
     assert.equal(buildDashboardEmbed([{ ...player, wins: 0, losses: 0 }]).toJSON().fields[2].value.includes('—'), true);
@@ -93,4 +93,17 @@ test('flex embed uses flex columns and purple colour', () => {
     assert.equal(embed.color, 0x9B59B6);
     assert.match(embed.fields[2].value, /GOLD II/);
     assert.match(embed.fields[2].value, /50 LP/);
+});
+
+test('leaderboard shows medals, LP bars and movement since the previous refresh', () => {
+    const { createMovementTracker } = require('./movement');
+    const tracker = createMovementTracker();
+    const a = { discord_id: 'a', riot_id: 'Alpha', tier: 'GOLD', rank: 'I', league_points: 80, wins: 1, losses: 1 };
+    const b = { discord_id: 'b', riot_id: 'Bravo', tier: 'GOLD', rank: 'II', league_points: 10, wins: 1, losses: 1 };
+    tracker.advance('solo', ['b', 'a']);
+    tracker.advance('solo', ['a', 'b']);
+    const embed = buildDashboardEmbed([a, b], null, 'SOLO', tracker.deltas('solo', ['a', 'b'])).toJSON();
+    assert.match(embed.fields[1].value, /🥇 Alpha ⬆️1/);
+    assert.match(embed.fields[1].value, /🥈 Bravo 🔻1/);
+    assert.match(embed.fields[2].value, /80 LP\*\* ▰▰▰▰▱/);
 });

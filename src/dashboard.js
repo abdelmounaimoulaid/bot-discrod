@@ -1,4 +1,6 @@
 const { EmbedBuilder, escapeMarkdown } = require('discord.js');
+const { progressBar } = require('./ladder');
+const { movementArrow, placeLabel } = require('./movement');
 
 const TITLES = {
     SOLO: '🏆 League of Legends • Solo/Duo Leaderboard',
@@ -13,7 +15,8 @@ const LEGACY_TITLES = [
     '🏆 LEAGUE OF LEGENDS — SERVER DASHBOARD'
 ];
 
-function buildDashboardEmbed(players, emojis, queueType = 'SOLO') {
+// `movement` maps discord_id -> places moved since the previous refresh.
+function buildDashboardEmbed(players, emojis, queueType = 'SOLO', movement = new Map()) {
     const isFlex = queueType === 'FLEX';
     const title = isFlex ? TITLES.FLEX : TITLES.SOLO;
     const embed = new EmbedBuilder()
@@ -50,8 +53,10 @@ function buildDashboardEmbed(players, emojis, queueType = 'SOLO') {
             item.available !== false && [tierName, `rank_${tierName}`].includes(item.name?.toLowerCase())
         );
         const icon = emoji ? `<${emoji.animated ? 'a' : ''}:${emoji.name}:${emoji.id}>` : icons[tier] || '';
+        // LP bars only on the podium: on all 25 rows the column passes Discord's 1024-char limit.
+        const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(tier);
         const rankStr = tier === 'UNRANKED' ? 'Unranked'
-            : `${icon} ${tier}${['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(tier) ? '' : ` ${rank}`} – **${lp} LP**`;
+            : `${icon} ${tier}${isApex ? '' : ` ${rank}`} – **${lp} LP**${isApex || index > 2 ? '' : ` ${progressBar(lp)}`}`;
         const games = wins + losses;
         const winRate = games ? `${((wins / games) * 100).toFixed(1)}%` : '—';
 
@@ -63,7 +68,7 @@ function buildDashboardEmbed(players, emojis, queueType = 'SOLO') {
 
         const name = player.riot_id.replace(/[\r\n\t]/g, ' ');
         const shortName = name.length > 15 ? `${name.slice(0, 14)}…` : name;
-        const row = [laneIcon, `**#${index + 1}** ${escapeMarkdown(shortName)}`, `${rankStr} • **${winRate}**`];
+        const row = [laneIcon, `${placeLabel(index)} ${escapeMarkdown(shortName)}${movementArrow(movement.get(player.discord_id))}`, `${rankStr} • **${winRate}**`];
 
         // Keep all three columns in sync and within Discord's field limit.
         if (shown === 25 || columns.some((column, i) => column.value.length + row[i].length + (shown ? 1 : 0) > 1024)) break;

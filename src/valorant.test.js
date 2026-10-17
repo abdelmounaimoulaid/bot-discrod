@@ -61,7 +61,7 @@ test('buildValorantDashboardEmbed formats players into 3 columns', () => {
     assert.equal(embed.fields[2].name, 'Rank & Win rate');
 
     assert.equal(embed.fields[0].value, '⚔️');
-    assert.match(embed.fields[1].value, /\*\*#1\*\* Jumia Caps/);
+    assert.match(embed.fields[1].value, /🥇 Jumia Caps/);
     assert.match(embed.fields[2].value, /Gold 3 – \*\*10 RR\*\*/);
     assert.match(embed.fields[2].value, /53\.8%/);
 });

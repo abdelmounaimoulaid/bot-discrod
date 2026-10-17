@@ -53,3 +53,20 @@ CREATE TABLE IF NOT EXISTS valorant_players (
     card_url VARCHAR(255) DEFAULT NULL,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS match_history (
+    game VARCHAR(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    match_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    discord_id VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    win TINYINT(1) NOT NULL,
+    lp_change INT DEFAULT NULL,
+    played_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (game, match_id, discord_id),
+    INDEX player_history (game, discord_id, played_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS weekly_baseline (
+    game VARCHAR(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    discord_id VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    week_key CHAR(10) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    score INT NOT NULL,
+    PRIMARY KEY (game, discord_id, week_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
