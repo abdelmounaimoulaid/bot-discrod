@@ -1,0 +1,40 @@
+===================================================================
+DEPLOYMENT INSTRUCTIONS (HOSTINGER / NODE.JS WITH MYSQL)
+===================================================================
+
+1. DATABASE SETUP (phpMyAdmin / MySQL):
+   - In Hostinger control panel, create a MySQL database and user.
+   - Note down: Database Name, Username, Password, and Host (usually 127.0.0.1 or localhost).
+   - Open phpMyAdmin for that database and import `mysql-recovery.sql`.
+     (This creates the `players`, `dashboard_messages`, and `voice_rooms` tables
+     and restores the existing linked players and dashboard message).
+
+2. HOSTINGER APPLICATION CONFIGURATION:
+   - Node.js version: 22+ or 24
+   - Entry point: src/index.js
+   - Build command: npm run build
+   - Start command: npm start
+
+3. ENVIRONMENT VARIABLES:
+   Configure the following environment variables in your hosting settings (or via .env):
+     DISCORD_TOKEN=...
+     DISCORD_CLIENT_ID=...
+     DISCORD_GUILD_ID=...
+     RIOT_API_KEY=...
+     MYSQL_HOST=127.0.0.1
+     MYSQL_PORT=3306
+     MYSQL_DATABASE=uXXXXX_botdiscord
+     MYSQL_USER=uXXXXX_botdiscord
+     MYSQL_PASSWORD=...
+
+4. IMPORTANT:
+   - This bot runs strictly on MySQL (SQLite has been completely removed).
+   - All player links, leaderboard stats, and voice room states persist directly in MySQL.
+   - Run only ONE instance of the bot.
+===================================================================
+
+RANK ROLE MATCHING
+League uses its configured League role IDs. Valorant rank role names must include
+Valorant or VAL, for example: Valorant Diamond, Valorant Gold, Valorant Unranked.
+Use separate roles for each game. Unlabelled/shared rank roles are not managed by
+Valorant, so its refresh cannot remove a League rank. Unchanged roles are left alone.

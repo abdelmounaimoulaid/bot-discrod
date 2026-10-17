@@ -2,10 +2,15 @@
   "name": "bot-discord",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
+    "build": "node --check src/index.js && node --check src/dashboard.js && node --check src/database.js && node --check src/services/riot.js && node --check src/voice-rooms.js && node --check src/health-server.js && node --check src/mysql-database.js && node --check src/rank-roles.js && node --check src/lane-roles.js && node --check src/patch-notes.js && node --check src/services/valorant.js && node --check src/valorant-roles.js && node --check src/valorant-dashboard.js && node --check src/client-errors.js",
     "start": "node src/index.js",
-    "deploy": "node src/deploy-commands.js"
+    "deploy": "node src/deploy-commands.js",
+    "test": "node --test src/dashboard.test.js src/voice-rooms.test.js src/mysql-database.test.js src/rank-roles.test.js src/lane-roles.test.js src/patch-notes.test.js src/valorant.test.js src/interactions.test.js"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +18,8 @@
   "type": "commonjs",
   "dependencies": {
     "axios": "^1.20.0",
-    "better-sqlite3": "^13.0.3",
     "discord.js": "^14.27.0",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "mysql2": "^3.24.4"
   }
 }

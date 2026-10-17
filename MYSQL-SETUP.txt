@@ -1,0 +1,29 @@
+MYSQL MIGRATION
+
+1. In Hostinger, create a MySQL database and database user. Keep its full prefixed names.
+2. In phpMyAdmin, select that database and import mysql-recovery.sql before starting the new bot.
+   This recovery file contains the three locally saved players and the dashboard message ID.
+   Existing MySQL rows are preserved on duplicate Discord IDs or Riot account IDs.
+   For newer players saved only on the host, download its SQLite database consistently first
+   (with the bot stopped, including any WAL data) and export it using:
+   node src/export-mysql.js INPUT.db OUTPUT.sql
+   Import that newer export first, then the recovery export to fill missing records.
+3. Set these hosting environment variables:
+   MYSQL_HOST=<database hostname shown by Hostinger>
+   MYSQL_PORT=3306
+   MYSQL_DATABASE=<full database name>
+   MYSQL_USER=<full database username>
+   MYSQL_PASSWORD=<database password>
+   DISCORD_TOKEN=<existing bot token>
+   RIOT_API_KEY=<existing Riot API key>
+   For providers requiring TLS: MYSQL_SSL=true. Optional MYSQL_SSL_CA is a CA file path.
+4. Upload bot-mysql-update.zip. Node 24; build npm run build; start npm start; entry src/index.js.
+5. Look for 'MySQL connected; persistent database ready.' then the Discord login message.
+
+There is no SQLite fallback: missing or invalid MySQL configuration prevents Discord login.
+All future player updates, dashboard IDs, and voice-room ownership are saved in MySQL.
+Do not import the recovery SQL as part of every deployment. Back up MySQL regularly.
+The ZIP contains code only, not credentials or SQLite databases. MYSQL configuration must
+remain set across redeployments. Keep one running bot instance.
+
+MySQL persists data but does not fix a hosting service stopping the bot process.

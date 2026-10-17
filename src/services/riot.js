@@ -33,7 +33,9 @@ async function riotRequest(url) {
     const response = await axios.get(url, {
         headers: {
             "X-Riot-Token": process.env.RIOT_API_KEY
-        }
+        },
+        // Without a timeout one hung request stalls the whole refresh loop.
+        timeout: 10000
     });
 
     return response.data;

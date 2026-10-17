@@ -13,6 +13,8 @@ const client = new Client({
     intents: [GatewayIntentBits.Guilds]
 });
 
+const { buildLaneSelectMenu } = require("./lane-roles");
+
 const CHANNEL_ID = "1547347832611278909";
 
 client.once("ready", async () => {
@@ -33,9 +35,11 @@ client.once("ready", async () => {
             .setDescription([
                 "Connect your Riot account to join the server leaderboard.",
                 "",
-                "Your **rank, LP, wins and losses** will be tracked automatically.",
+                "• Your **rank, LP, wins and losses** are tracked automatically.",
+                "• You will automatically receive your **Rank Role** on the server.",
+                "• Select your **primary lane** below to receive your Lane Role and icon.",
                 "",
-                "Click the button below to get started."
+                "Click the button below to link your account, and choose your lane!"
             ].join("\n"))
             .setFooter({
                 text: "League of Legends • Account Linking"
@@ -47,12 +51,15 @@ client.once("ready", async () => {
             .setEmoji("🔗")
             .setStyle(ButtonStyle.Primary);
 
-        const row = new ActionRowBuilder()
+        const buttonRow = new ActionRowBuilder()
             .addComponents(button);
+
+        const selectRow = new ActionRowBuilder()
+            .addComponents(buildLaneSelectMenu());
 
         await channel.send({
             embeds: [embed],
-            components: [row]
+            components: [buttonRow, selectRow]
         });
 
         console.log("✅ Link panel sent successfully!");
