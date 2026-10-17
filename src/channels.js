@@ -1,5 +1,7 @@
 // Channels for the bot's announcement features. Each feature has its own env var
-// and falls back to ANNOUNCEMENTS_CHANNEL_ID; with neither set it stays off.
+// and falls back to ANNOUNCEMENTS_CHANNEL_ID, then to the server's announcement channel.
+const DEFAULT_ANNOUNCEMENTS_CHANNEL_ID = '1545132839522017284';
+
 const FEATURE_CHANNELS = {
     rankUps: 'RANK_UP_CHANNEL_ID',
     matchRecaps: 'MATCH_RECAP_CHANNEL_ID',
@@ -9,7 +11,7 @@ const FEATURE_CHANNELS = {
 };
 
 function featureChannelId(feature, env = process.env) {
-    return env[FEATURE_CHANNELS[feature]] || env.ANNOUNCEMENTS_CHANNEL_ID || null;
+    return env[FEATURE_CHANNELS[feature]] || env.ANNOUNCEMENTS_CHANNEL_ID || DEFAULT_ANNOUNCEMENTS_CHANNEL_ID;
 }
 
 async function getFeatureChannel(client, feature, env = process.env) {
@@ -23,4 +25,4 @@ async function getFeatureChannel(client, feature, env = process.env) {
     return channel;
 }
 
-module.exports = { FEATURE_CHANNELS, featureChannelId, getFeatureChannel };
+module.exports = { FEATURE_CHANNELS, DEFAULT_ANNOUNCEMENTS_CHANNEL_ID, featureChannelId, getFeatureChannel };

@@ -116,8 +116,8 @@ test('agent counts come from the player in each match', () => {
     assert.deepEqual(countAgents([match('Jett'), match('Jett'), match('Omen')], 'me', 'n', 't'), [['Jett', 2], ['Omen', 1]]);
 });
 
-test('feature channels fall back to ANNOUNCEMENTS_CHANNEL_ID', () => {
-    assert.equal(featureChannelId('rankUps', {}), null);
+test('feature channels fall back to ANNOUNCEMENTS_CHANNEL_ID, then the server default', () => {
+    assert.equal(featureChannelId('rankUps', {}), '1545132839522017284');
     assert.equal(featureChannelId('rankUps', { ANNOUNCEMENTS_CHANNEL_ID: 'a' }), 'a');
     assert.equal(featureChannelId('rankUps', { ANNOUNCEMENTS_CHANNEL_ID: 'a', RANK_UP_CHANNEL_ID: 'r' }), 'r');
 });

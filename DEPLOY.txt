@@ -46,13 +46,12 @@ After uploading, run `npm install` (adds the optional image library for
 /profile) and then `npm run deploy` ONCE to register the slash commands:
   /profile, /mastery player|server, /inhouse, /lfg, /status, /welcome-preview
 
-Announcement channel (required for automatic posts):
-  ANNOUNCEMENTS_CHANNEL_ID=<channel id>
+Announcement channel:
+  Defaults to 1545132839522017284. Change it with ANNOUNCEMENTS_CHANNEL_ID=<channel id>.
   Used for rank-up announcements, match recap cards, live game alerts,
   the weekly LP race and welcome messages. Override any of them with
   RANK_UP_CHANNEL_ID, MATCH_RECAP_CHANNEL_ID, LIVE_GAMES_CHANNEL_ID,
-  LP_RACE_CHANNEL_ID, WELCOME_CHANNEL_ID. Without a channel, that feature
-  stays off (and live game polling is skipped to save Riot rate limit).
+  LP_RACE_CHANNEL_ID, WELCOME_CHANNEL_ID.
 
 Welcome messages + instant leave cleanup (optional):
   1. Discord Developer Portal -> your app -> Bot -> enable
