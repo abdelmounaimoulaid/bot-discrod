@@ -15,7 +15,7 @@ const client = new Client({
 
 const { buildLaneSelectMenu } = require("./lane-roles");
 
-const CHANNEL_ID = "1547347832611278909";
+const CHANNEL_ID = process.env.LINK_CHANNEL_ID || "1547347832611278909";
 
 client.once("clientReady", async () => {
 

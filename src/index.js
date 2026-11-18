@@ -82,8 +82,8 @@ const movement = createMovementTracker();
 // CONFIG
 // ============================================================
 
-const LINK_CHANNEL_ID = "1547347832611278909";
-const DASHBOARD_CHANNEL_ID = "1547348269053648896";
+const LINK_CHANNEL_ID = process.env.LINK_CHANNEL_ID || "1547347832611278909";
+const DASHBOARD_CHANNEL_ID = process.env.DASHBOARD_CHANNEL_ID || "1547348269053648896";
 const PATCH_NOTES_CHANNEL_ID = process.env.PATCH_NOTES_CHANNEL_ID || "1547015987495182377";
 const VALORANT_LEADERBOARD_CHANNEL_ID = process.env.VALORANT_LEADERBOARD_CHANNEL_ID || "1547648922636255323";
 const VALORANT_LINK_CHANNEL_ID = process.env.VALORANT_LINK_CHANNEL_ID || "1547652464356888668";
@@ -157,6 +157,16 @@ async function fetchMember(guild, discordId) {
     );
   }
   return member || null;
+}
+
+// fetchMember returns null both when Discord is briefly unavailable and when
+// the member left (in which case they were just unlinked). Only the second
+// should skip that player's announcements and weekly race entry.
+async function stillLinked(table, discordId) {
+  const row = await db
+    .prepare(`SELECT discord_id FROM ${table} WHERE discord_id = ?`)
+    .get(discordId);
+  return Boolean(row);
 }
 
 // Runs the task at most once at a time: a refresh still waiting on slow API calls
@@ -402,8 +412,14 @@ async function updateAllPlayers() {
       if (guild) {
         try {
           const member = await fetchMember(guild, player.discord_id);
-          if (!member) continue;
-          await syncRankRole(member, soloQueue.tier);
+          if (member) {
+            await syncRankRole(member, soloQueue.tier);
+          } else if (!(await stillLinked("players", player.discord_id))) {
+            // They left the server and were unlinked: no announcements.
+            continue;
+          }
+          // A member who could not be fetched right now still gets their
+          // LP race baseline and rank-up / match recap below.
         } catch (err) {
           console.error(
             `Failed to sync rank role for ${player.discord_id}:`,
@@ -534,8 +550,11 @@ async function updateAllValorantPlayers() {
 
       if (guild) {
         const member = await fetchMember(guild, player.discord_id);
-        if (!member) continue;
-        await syncValorantRankRole(member, data.tier_name);
+        if (member) {
+          await syncValorantRankRole(member, data.tier_name);
+        } else if (!(await stillLinked("valorant_players", player.discord_id))) {
+          continue;
+        }
       }
 
       if (data.current_tier >= 3) baselines.push({ discord_id: player.discord_id, score: data.elo });
