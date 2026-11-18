@@ -174,6 +174,31 @@ async function updateDashboard() {
 // UPDATE ALL PLAYERS FROM RIOT
 // ============================================================
 
+// A PUUID is encrypted for the API key that fetched it. After switching to a
+// new Riot key, the stored PUUIDs are rejected with 400 "Exception decrypting".
+// Look the account up again by Riot ID, save the new PUUID, and retry once.
+async function getRankedForPlayer(player) {
+    try {
+        return await getRanked(player.puuid, player.region);
+    } catch (error) {
+        if (error.response?.status !== 400) {
+            throw error;
+        }
+
+        console.warn(
+            `⚠️ Stored PUUID for ${player.riot_id}#${player.tag} was rejected (new Riot key?). Looking it up again...`
+        );
+
+        const account = await getRiotAccount(player.riot_id, player.tag, player.region);
+
+        db.prepare("UPDATE players SET puuid = ? WHERE discord_id = ?")
+            .run(account.puuid, player.discord_id);
+        player.puuid = account.puuid;
+
+        return getRanked(player.puuid, player.region);
+    }
+}
+
 async function updateAllPlayers() {
     const players = db.prepare(`
         SELECT *
@@ -205,10 +230,7 @@ async function updateAllPlayers() {
 
     for (const player of players) {
         try {
-            const rankedEntries = await getRanked(
-                player.puuid,
-                player.region
-            );
+            const rankedEntries = await getRankedForPlayer(player);
 
             const soloQueue = rankedEntries.find(
                 entry => entry.queueType === "RANKED_SOLO_5x5"
@@ -259,7 +281,8 @@ async function updateAllPlayers() {
 
             if (error.response) {
                 console.error(
-                    `Riot API status: ${error.response.status}`
+                    `Riot API status: ${error.response.status}`,
+                    error.response.data?.status?.message || ""
                 );
             } else {
                 console.error(error.message);
@@ -320,7 +343,7 @@ function buildLinkPanel() {
 // BOT READY
 // ============================================================
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
 
     // Initial refresh
