@@ -674,6 +674,14 @@ async function handleInteraction(interaction) {
 // LOGIN
 // ============================================================
 
+for (const name of ["DISCORD_TOKEN", "RIOT_API_KEY"]) {
+    if (!process.env[name]) {
+        console.error(`❌ Missing environment variable ${name}. Add it in your host's environment settings.`);
+    }
+}
+
+module.exports = client;
+
 client.login(process.env.DISCORD_TOKEN)
     .then(() => {
         console.log("🔐 Login request sent");
