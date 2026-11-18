@@ -7,7 +7,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "node --check src/index.js && node --check src/bot-status.js && node --check src/channels.js && node --check src/client-errors.js && node --check src/commands.js && node --check src/dashboard.js && node --check src/database.js && node --check src/game-events.js && node --check src/game-roles.js && node --check src/health-server.js && node --check src/inhouse.js && node --check src/ladder.js && node --check src/lane-roles.js && node --check src/lfg.js && node --check src/live-games.js && node --check src/lp-race.js && node --check src/mastery.js && node --check src/member-cleanup.js && node --check src/movement.js && node --check src/mysql-database.js && node --check src/patch-notes.js && node --check src/profile-card.js && node --check src/rank-roles.js && node --check src/services/rate-limiter.js && node --check src/services/riot.js && node --check src/services/valorant.js && node --check src/status.js && node --check src/temp-voice.js && node --check src/valorant-dashboard.js && node --check src/valorant-roles.js && node --check src/voice-rooms.js && node --check src/welcome.js",
+    "build": "node --check index.js && node --check src/index.js && node --check src/bot-status.js && node --check src/channels.js && node --check src/client-errors.js && node --check src/commands.js && node --check src/dashboard.js && node --check src/database.js && node --check src/game-events.js && node --check src/game-roles.js && node --check src/health-server.js && node --check src/inhouse.js && node --check src/ladder.js && node --check src/lane-roles.js && node --check src/lfg.js && node --check src/live-games.js && node --check src/lp-race.js && node --check src/mastery.js && node --check src/member-cleanup.js && node --check src/movement.js && node --check src/mysql-database.js && node --check src/patch-notes.js && node --check src/profile-card.js && node --check src/rank-roles.js && node --check src/services/rate-limiter.js && node --check src/services/riot.js && node --check src/services/valorant.js && node --check src/status.js && node --check src/temp-voice.js && node --check src/valorant-dashboard.js && node --check src/valorant-roles.js && node --check src/voice-rooms.js && node --check src/welcome.js",
     "start": "node src/index.js",
     "deploy": "node src/deploy-commands.js",
     "test": "node --test src/dashboard.test.js src/features.test.js src/interactions.test.js src/lane-roles.test.js src/mysql-database.test.js src/patch-notes.test.js src/rank-roles.test.js src/valorant.test.js src/voice-rooms.test.js"
@@ -17,12 +17,16 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "axios": "^1.20.0",
-    "discord.js": "^14.27.0",
+    "axios": "^1.21.1",
+    "discord.js": "^14.28.1",
     "dotenv": "^17.4.2",
     "mysql2": "^3.24.4"
   },
   "optionalDependencies": {
     "@napi-rs/canvas": "1.0.9"
+  },
+  "overrides": {
+    "undici": "^6.29.1",
+    "follow-redirects": "^1.16.3"
   }
 }

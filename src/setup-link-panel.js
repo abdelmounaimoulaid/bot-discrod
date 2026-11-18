@@ -17,7 +17,7 @@ const { buildLaneSelectMenu } = require("./lane-roles");
 
 const CHANNEL_ID = "1547347832611278909";
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
 
     console.log(`✅ Logged in as ${client.user.tag}`);
 
