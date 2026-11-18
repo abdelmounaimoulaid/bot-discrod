@@ -938,8 +938,11 @@ client.on("interactionCreate", async (interaction) => {
       if (error.response && error.response.status === 404) {
         message +=
           "\n\nMake sure your **Riot ID, Tag and Region** are correct.";
-      } else if (error.response && error.response.status === 403) {
-        message += "\n\nThe Riot API key may be invalid or expired.";
+      } else if (
+        error.response &&
+        (error.response.status === 401 || error.response.status === 403)
+      ) {
+        message += "\n\nThe Riot API key may be missing, invalid or expired.";
       } else if (error.response && error.response.status === 429) {
         message += "\n\nRiot API rate limit reached. Please try again later.";
       }
