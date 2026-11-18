@@ -21,8 +21,13 @@ const {
 } = require("./services/riot");
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildVoiceStates
+    ]
 });
+
+require("./voice").setupJoinToCreate({ client, db });
 
 // ============================================================
 // ERROR SAFETY NET
