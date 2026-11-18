@@ -128,7 +128,12 @@ function createLiveGameWatcher({ client, db, intervalMs = CHECK_INTERVAL }) {
         timer = setInterval(check, intervalMs);
     }
 
-    return { start, check, handleInteraction, isRunning: () => Boolean(timer) && forbidden < 3 };
+    function stop() {
+        if (timer) clearInterval(timer);
+        timer = null;
+    }
+
+    return { start, stop, check, handleInteraction, isRunning: () => Boolean(timer) && forbidden < 3 };
 }
 
 module.exports = { createLiveGameWatcher };

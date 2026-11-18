@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { LANES } = require('./lane-roles');
 const { LOL_TIERS } = require('./ladder');
+const { FEATURE_CHOICES, CHANNEL_TYPES } = require('./server-commands');
 
 const tierChoices = LOL_TIERS.map(tier => ({ name: tier.charAt(0) + tier.slice(1).toLowerCase(), value: tier }));
 const laneChoices = [...Object.values(LANES).map(lane => ({ name: lane.label, value: lane.id })), { name: 'Any lane', value: 'ANY' }];
@@ -28,6 +29,34 @@ const COMMANDS = [
         .addStringOption(option => option.setName('min_rank').setDescription('Lowest rank').addChoices(...tierChoices))
         .addStringOption(option => option.setName('max_rank').setDescription('Highest rank').addChoices(...tierChoices))
         .addStringOption(option => option.setName('note').setDescription('Anything else (e.g. "chill, mic on")').setMaxLength(100)),
+    new SlashCommandBuilder()
+        .setName('leaderboard')
+        .setDescription('Show a leaderboard right here')
+        .addStringOption(option => option.setName('board').setDescription('Which leaderboard (default: Solo/Duo)').addChoices(
+            { name: 'League Solo/Duo', value: 'solo' },
+            { name: 'League Flex', value: 'flex' },
+            { name: 'VALORANT', value: 'valorant' }
+        )),
+    new SlashCommandBuilder()
+        .setName('unlink')
+        .setDescription('Remove a player from the leaderboards')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .addUserOption(option => option.setName('user').setDescription('Player to unlink').setRequired(true))
+        .addStringOption(option => option.setName('game').setDescription('Which account (default: both)').addChoices(
+            { name: 'Both', value: 'all' },
+            { name: 'League of Legends', value: 'lol' },
+            { name: 'VALORANT', value: 'valorant' }
+        )),
+    new SlashCommandBuilder()
+        .setName('refresh')
+        .setDescription('Update every player and leaderboard now')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    new SlashCommandBuilder()
+        .setName('setchannel')
+        .setDescription('Choose where an announcement feature posts')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .addStringOption(option => option.setName('feature').setDescription('Feature to move').setRequired(true).addChoices(...FEATURE_CHOICES))
+        .addChannelOption(option => option.setName('channel').setDescription('Channel to post in (leave empty to reset to .env)').addChannelTypes(...CHANNEL_TYPES)),
     new SlashCommandBuilder()
         .setName('status')
         .setDescription('Bot health: uptime, refreshes, API errors, database')

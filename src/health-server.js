@@ -1,5 +1,20 @@
 const http = require("node:http");
 
+// index.js plugs in a function that reports Discord state. The answer is always
+// HTTP 200 so the hosting proxy never marks the app down; monitors such as
+// UptimeRobot should look for the keyword "discord":"online" instead.
+let statusProvider = () => ({});
+
+function setStatusProvider(fn) {
+    statusProvider = fn;
+}
+
+function healthBody() {
+    let extra = {};
+    try { extra = statusProvider() || {}; } catch {}
+    return { status: "running", uptimeSeconds: Math.round(process.uptime()), ...extra };
+}
+
 function startHealthServer(port = process.env.PORT || 3000) {
 
     const server = http.createServer((request, response) => {
@@ -15,9 +30,7 @@ function startHealthServer(port = process.env.PORT || 3000) {
             "Cache-Control": "no-store"
         });
 
-        response.end(JSON.stringify({
-            status: "running"
-        }));
+        response.end(JSON.stringify(healthBody()));
     });
 
     server.on("error", error => {
@@ -32,4 +45,4 @@ function startHealthServer(port = process.env.PORT || 3000) {
     return server;
 }
 
-module.exports = { startHealthServer };
+module.exports = { startHealthServer, setStatusProvider, healthBody };

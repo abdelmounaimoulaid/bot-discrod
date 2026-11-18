@@ -1,5 +1,5 @@
 require("dotenv").config();
-require("./health-server").startHealthServer();
+const healthServer = require("./health-server").startHealthServer();
 
 const {
   Client,
@@ -37,6 +37,7 @@ const {
 const {
   createValorantDashboardUpdater,
   buildValorantLinkPanel,
+  buildValorantDashboardEmbed,
 } = require("./valorant-dashboard");
 const { leagueScore } = require("./ladder");
 const { createMovementTracker } = require("./movement");
@@ -51,6 +52,11 @@ const { handleStatusCommand } = require("./status");
 const { buildWelcomeMessage, sendWelcome } = require("./welcome");
 const { fetchMemberState, removeDeparted, isManagedGuild } = require("./member-cleanup");
 const { recordRefresh, recordApiError } = require("./bot-status");
+const { createRankHistory } = require("./rank-history");
+const { createMonthlyRecap } = require("./monthly-recap");
+const { maybeBackup } = require("./backup");
+const { createServerCommands } = require("./server-commands");
+const { loadChannelOverrides } = require("./channels");
 
 // Welcome messages and instant leave-cleanup need the privileged Server Members
 // intent. Requesting it without enabling it in the Developer Portal makes login
@@ -77,6 +83,8 @@ const inhouse = createInhouse({ db });
 const lfg = createLfg({ db });
 const mastery = createMastery({ db });
 const movement = createMovementTracker();
+const rankHistory = createRankHistory({ db });
+const monthlyRecap = createMonthlyRecap({ client, db, rankHistory });
 
 // ============================================================
 // CONFIG
@@ -448,6 +456,9 @@ async function updateAllPlayers() {
   await lpRace.recordBaselines("LOL", baselines).catch((error) =>
     console.error("Could not record weekly LP baselines:", error.message),
   );
+  await rankHistory.record("LOL", baselines).catch((error) =>
+    console.error("Could not record LP history:", error.message),
+  );
   recordRefresh("league", { startedAt, players: players.length });
 }
 
@@ -568,6 +579,9 @@ async function updateAllValorantPlayers() {
   await lpRace.recordBaselines("VAL", baselines).catch((error) =>
     console.error("Could not record weekly RR baselines:", error.message),
   );
+  await rankHistory.record("VAL", baselines).catch((error) =>
+    console.error("Could not record RR history:", error.message),
+  );
   recordRefresh("valorant", { startedAt, players: players.length });
 }
 
@@ -588,10 +602,34 @@ function refreshAll(label) {
   return Promise.allSettled([
     refreshDashboard().catch((err) => console.error(`❌ ${label} League leaderboard refresh failed:`, err)),
     refreshValorantDashboard().catch((err) => console.error(`❌ ${label} Valorant leaderboard refresh failed:`, err)),
-  ]).then(() =>
-    lpRace.maybePost().catch((err) => console.error("❌ Weekly LP race post failed:", err)),
+  ])
+    .then(() => lpRace.maybePost().catch((err) => console.error("❌ Weekly LP race post failed:", err)))
+    .then(() => monthlyRecap.maybePost().catch((err) => console.error("❌ Monthly recap post failed:", err)))
+    .then(() => maybeBackup(db).catch((err) => console.error("❌ Daily database backup failed:", err.message)));
+}
+
+// ============================================================
+// /leaderboard, /unlink, /refresh, /setchannel
+// ============================================================
+
+async function buildValorantEmbed(guild) {
+  const players = await db
+    .prepare("SELECT * FROM valorant_players ORDER BY elo DESC, ranking_in_tier DESC")
+    .all();
+  return buildValorantDashboardEmbed(
+    players,
+    guild?.emojis?.cache,
+    movement.deltas("val", players.map((p) => p.discord_id)),
   );
 }
+
+const serverCommands = createServerCommands({
+  db,
+  buildLeagueEmbed: buildDashboardEmbed,
+  buildValorantEmbed,
+  refreshAll,
+  updateDashboards: () => Promise.allSettled([updateDashboard(), persistValorantDashboard()]),
+});
 
 // ============================================================
 // LINK PANEL
@@ -634,6 +672,8 @@ function buildLinkPanel() {
 // BOT READY
 // ============================================================
 
+let refreshTimer = null;
+
 client.once("clientReady", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
@@ -645,9 +685,17 @@ client.once("clientReady", async () => {
     console.error("❌ Patch notes poster failed to start:", err);
   }
 
+  // Channels picked with /setchannel override the .env ones.
+  try {
+    const count = await loadChannelOverrides(db);
+    if (count) console.log(`📌 Loaded ${count} channel override(s) from /setchannel.`);
+  } catch (err) {
+    console.error("❌ Could not load /setchannel overrides:", err.message);
+  }
+
   // Initial leaderboard refreshes, then every 5 minutes
   refreshAll("Initial");
-  setInterval(() => refreshAll("Periodic"), DASHBOARD_REFRESH_INTERVAL);
+  refreshTimer = setInterval(() => refreshAll("Periodic"), DASHBOARD_REFRESH_INTERVAL);
 
   liveGames.start();
 });
@@ -677,7 +725,7 @@ if (MEMBER_EVENTS_ENABLED) {
 async function handleChatCommand(interaction) {
   switch (interaction.commandName) {
     case "profile":
-      return handleProfileCommand(interaction, db);
+      return handleProfileCommand(interaction, db, { rankHistory });
     case "mastery":
       return mastery.handleCommand(interaction);
     case "inhouse":
@@ -698,6 +746,7 @@ async function handleChatCommand(interaction) {
         flags: MessageFlags.Ephemeral,
       });
     default:
+      if (await serverCommands.handleCommand(interaction)) return;
       return interaction.reply({ content: "Unknown command.", flags: MessageFlags.Ephemeral });
   }
 }
@@ -1252,6 +1301,47 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 });
+
+// ============================================================
+// HEALTH CHECK (/health, for UptimeRobot)
+// ============================================================
+
+// Always HTTP 200; a keyword monitor on "discord":"online" catches a bot whose
+// web process is up but whose Discord connection is not.
+require("./health-server").setStatusProvider?.(() => {
+  const { refreshes } = require("./bot-status").snapshot();
+  const last = Math.max(0, ...Object.values(refreshes).map((r) => r.finishedAt || 0));
+  return {
+    discord: client.isReady() ? "online" : "offline",
+    ping: client.isReady() ? client.ws.ping : null,
+    lastRefresh: last ? new Date(last).toISOString() : null,
+  };
+});
+
+// ============================================================
+// CLEAN SHUTDOWN
+// ============================================================
+
+// Hosts send SIGTERM when they restart or redeploy the bot. Closing Discord and
+// MySQL cleanly releases the single-instance lock at once, so the new copy can
+// start without waiting, and no refresh is cut off halfway through a write.
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`🛑 ${signal} received; shutting down...`);
+  const forceExit = setTimeout(() => process.exit(0), 10000);
+  forceExit.unref?.();
+  if (refreshTimer) clearInterval(refreshTimer);
+  liveGames.stop?.();
+  try { await client.destroy(); } catch (err) { console.error("Discord shutdown:", err.message); }
+  try { healthServer?.close(); } catch {}
+  try { await db.close?.(); } catch (err) { console.error("MySQL shutdown:", err.message); }
+  console.log("👋 Bot stopped cleanly.");
+  process.exit(0);
+}
+process.once?.("SIGTERM", () => shutdown("SIGTERM"));
+process.once?.("SIGINT", () => shutdown("SIGINT"));
 
 // ============================================================
 // LOGIN

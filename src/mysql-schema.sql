@@ -70,3 +70,12 @@ CREATE TABLE IF NOT EXISTS weekly_baseline (
     score INT NOT NULL,
     PRIMARY KEY (game, discord_id, week_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+;
+CREATE TABLE IF NOT EXISTS rank_history (
+    game VARCHAR(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    discord_id VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    recorded_at DATETIME NOT NULL,
+    score INT NOT NULL,
+    PRIMARY KEY (game, discord_id, recorded_at),
+    INDEX history_by_time (game, recorded_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
