@@ -25,6 +25,32 @@ const client = new Client({
 });
 
 // ============================================================
+// ERROR SAFETY NET
+// ============================================================
+// Without these, one unexpected error (for example an interaction that
+// expired before we answered it) stops the whole Node process.
+
+client.on("error", error => {
+    console.error("❌ Discord client error:", error);
+});
+
+client.on("shardError", error => {
+    console.error("❌ Discord connection error:", error);
+});
+
+client.on("warn", message => {
+    console.warn("⚠️ Discord warning:", message);
+});
+
+process.on("unhandledRejection", reason => {
+    console.error("❌ Unhandled promise rejection:", reason);
+});
+
+process.on("uncaughtException", error => {
+    console.error("❌ Uncaught exception:", error);
+});
+
+// ============================================================
 // CONFIG
 // ============================================================
 
@@ -298,19 +324,68 @@ client.once("ready", async () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
 
     // Initial refresh
-    await refreshDashboard();
+    await safeRefreshDashboard();
 
     // Refresh every 5 minutes
-    setInterval(async () => {
-        await refreshDashboard();
-    }, DASHBOARD_REFRESH_INTERVAL);
+    setInterval(safeRefreshDashboard, DASHBOARD_REFRESH_INTERVAL);
 });
+
+async function safeRefreshDashboard() {
+    try {
+        await refreshDashboard();
+    } catch (error) {
+        console.error("❌ Leaderboard refresh failed:", error);
+    }
+}
 
 // ============================================================
 // INTERACTIONS
 // ============================================================
 
+// Discord error codes for an interaction we can no longer answer.
+const UNKNOWN_INTERACTION = 10062;
+const ALREADY_ACKNOWLEDGED = 40060;
+
 client.on("interactionCreate", async interaction => {
+    try {
+        await handleInteraction(interaction);
+    } catch (error) {
+        if (error.code === UNKNOWN_INTERACTION) {
+            console.warn(
+                `⚠️ Interaction from ${interaction.user?.tag} expired before the bot could answer.`
+            );
+            return;
+        }
+
+        console.error("❌ Interaction failed:", error);
+        await sendErrorReply(interaction);
+    }
+});
+
+async function sendErrorReply(interaction) {
+    if (!interaction.isRepliable()) {
+        return;
+    }
+
+    const content = "❌ Something went wrong. Please try again in a moment.";
+
+    try {
+        if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content, embeds: [], components: [] });
+        } else {
+            await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+        }
+    } catch (error) {
+        if (
+            error.code !== UNKNOWN_INTERACTION &&
+            error.code !== ALREADY_ACKNOWLEDGED
+        ) {
+            console.error("❌ Could not send the error reply:", error);
+        }
+    }
+}
+
+async function handleInteraction(interaction) {
 
     // ========================================================
     // LINK BUTTON
@@ -593,7 +668,7 @@ client.on("interactionCreate", async interaction => {
             return;
         }
     }
-});
+}
 
 // ============================================================
 // LOGIN
@@ -606,5 +681,9 @@ client.login(process.env.DISCORD_TOKEN)
     .catch(error => {
         console.error("❌ Discord login failed:");
         console.error(error);
+
+        // Exit so the host (or pm2) can restart the bot instead of
+        // leaving a process running that is not connected to Discord.
+        process.exit(1);
     });
 
