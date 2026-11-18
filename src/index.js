@@ -1303,6 +1303,22 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // ============================================================
+// HEALTH CHECK (/health, for UptimeRobot)
+// ============================================================
+
+// Always HTTP 200; a keyword monitor on "discord":"online" catches a bot whose
+// web process is up but whose Discord connection is not.
+require("./health-server").setStatusProvider?.(() => {
+  const { refreshes } = require("./bot-status").snapshot();
+  const last = Math.max(0, ...Object.values(refreshes).map((r) => r.finishedAt || 0));
+  return {
+    discord: client.isReady() ? "online" : "offline",
+    ping: client.isReady() ? client.ws.ping : null,
+    lastRefresh: last ? new Date(last).toISOString() : null,
+  };
+});
+
+// ============================================================
 // CLEAN SHUTDOWN
 // ============================================================
 

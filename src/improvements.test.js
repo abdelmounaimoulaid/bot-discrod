@@ -209,3 +209,13 @@ test('profile embed shows the 30-day trend', () => {
     const field = embed.fields.find(item => item.name.includes('30 days'));
     assert.match(field.value, /League ▁█ \*\*\+140 LP\*\*/);
 });
+
+test('health body reports Discord state and survives a failing provider', () => {
+    const { healthBody, setStatusProvider } = require('./health-server');
+    setStatusProvider(() => ({ discord: 'online' }));
+    assert.equal(healthBody().discord, 'online');
+    assert.equal(healthBody().status, 'running');
+    setStatusProvider(() => { throw new Error('boom'); });
+    assert.equal(healthBody().status, 'running');
+    setStatusProvider(() => ({}));
+});
