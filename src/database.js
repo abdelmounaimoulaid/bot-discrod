@@ -1,8 +1,12 @@
-const Database = require("better-sqlite3");
+// Node's built-in SQLite (node:sqlite) needs no native add-on, so it runs on
+// hosts whose system libraries are too old for better-sqlite3's prebuilt binary.
+const { DatabaseSync } = require("node:sqlite");
+const path = require("path");
 
-const db = new Database("leaderboard.db");
+// Keep the file next to the project, whatever directory the host starts from.
+const db = new DatabaseSync(path.join(__dirname, "..", "leaderboard.db"));
 
-db.pragma("journal_mode = WAL");
+db.exec("PRAGMA journal_mode = WAL");
 
 db.exec(`
     CREATE TABLE IF NOT EXISTS dashboard_messages (
