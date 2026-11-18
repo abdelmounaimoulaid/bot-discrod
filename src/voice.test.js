@@ -21,6 +21,8 @@ function setup() {
                     name: options.name,
                     type: options.type,
                     parentId: options.parent,
+                    position: options.position,
+                    setPosition: async position => { channel.sortedPosition = position; },
                     members: new Map(),
                     delete: async () => { channels.delete(channel.id); }
                 };
@@ -32,7 +34,7 @@ function setup() {
 
     const hub = {
         id: 'hub', name: '| Join To Create', type: ChannelType.GuildVoice,
-        parentId: 'category', bitrate: 64000, userLimit: 0,
+        parentId: 'category', rawPosition: 3, position: 1, bitrate: 64000, userLimit: 0,
         parent: { permissionOverwrites: { cache: [] } }, members: new Map()
     };
 
@@ -83,6 +85,8 @@ test('joining the hub creates a channel named after the member and moves them', 
     const [channel] = channels.values();
     assert.equal(channel.name, '🔊 Jumia Caps');
     assert.equal(channel.parentId, 'category');
+    assert.equal(channel.position, 4, 'created right under the hub');
+    assert.equal(channel.sortedPosition, 2, 'reordered right under the hub');
     assert.equal(caps.channel, channel);
 });
 
