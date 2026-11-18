@@ -76,6 +76,8 @@ function setupJoinToCreate({ client, db }) {
                 name: `🔊 ${member.displayName}`.slice(0, 100),
                 type: ChannelType.GuildVoice,
                 parent: hub.parentId ?? undefined,
+                // Right under the hub, above the other voice channels.
+                position: hub.rawPosition + 1,
                 bitrate: hub.bitrate,
                 userLimit: hub.userLimit,
                 permissionOverwrites: [
@@ -101,6 +103,15 @@ function setupJoinToCreate({ client, db }) {
             });
 
             insertChannel.run(channel.id, member.guild.id, member.id);
+
+            // Discord does not shift the other channels for the position given
+            // at creation, so a sibling with the same position can still sort
+            // first. Reorder explicitly to sit right under the hub.
+            try {
+                await channel.setPosition(hub.position + 1);
+            } catch (error) {
+                console.warn("⚠️ Could not move the voice channel under the hub:", error.message);
+            }
 
             try {
                 await member.voice.setChannel(channel);
