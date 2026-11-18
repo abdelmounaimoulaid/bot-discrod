@@ -1,0 +1,320 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1792262299.135888,
+    "seen": 1792262527.847623,
+    "ast_hash": "3ac995fbf93552a991ecab9b63f776aa",
+    "semantic_hash": "3ac995fbf93552a991ecab9b63f776aa"
+  },
+  "package.json": {
+    "mtime": 1795033650.6225924,
+    "seen": 1795033663.5009248,
+    "ast_hash": "bfd0478baf226290557f4b08a8441c51",
+    "semantic_hash": ""
+  },
+  "src/client-errors.js": {
+    "mtime": 1792262774.4498756,
+    "seen": 1792262826.5619037,
+    "ast_hash": "32b82d03d7f852988f189f4e46720195",
+    "semantic_hash": ""
+  },
+  "src/dashboard.js": {
+    "mtime": 1792264246.3542762,
+    "seen": 1792264778.1981456,
+    "ast_hash": "2b7c1bd12ff92ba05fcb32a6c61e17d3",
+    "semantic_hash": ""
+  },
+  "src/dashboard.test.js": {
+    "mtime": 1792264220.3659904,
+    "seen": 1792264778.1981475,
+    "ast_hash": "8cebf653ab0775354cc4fd0c17af2dfb",
+    "semantic_hash": ""
+  },
+  "src/database.js": {
+    "mtime": 1788997250.593077,
+    "seen": 1792262527.8476348,
+    "ast_hash": "45eb15aac7fa0ba75746d922fc808c0b",
+    "semantic_hash": "45eb15aac7fa0ba75746d922fc808c0b"
+  },
+  "src/deploy-commands.js": {
+    "mtime": 1792264565.1992447,
+    "seen": 1792264778.198306,
+    "ast_hash": "865aa2151a05742f0ace63800390d2d6",
+    "semantic_hash": ""
+  },
+  "src/game-roles.js": {
+    "mtime": 1789488003.4139278,
+    "seen": 1792262527.8476365,
+    "ast_hash": "e5e9534a7ebe486f094e3725d347368d",
+    "semantic_hash": "e5e9534a7ebe486f094e3725d347368d"
+  },
+  "src/health-server.js": {
+    "mtime": 1789051096.4771874,
+    "seen": 1792262527.8476374,
+    "ast_hash": "adc938c0c4c3cbc3dfa2943ef74a59e3",
+    "semantic_hash": "adc938c0c4c3cbc3dfa2943ef74a59e3"
+  },
+  "src/index.js": {
+    "mtime": 1795033650.6235924,
+    "seen": 1795033663.5039365,
+    "ast_hash": "b133144d2131b5c72d682edffad89122",
+    "semantic_hash": ""
+  },
+  "src/interactions.test.js": {
+    "mtime": 1789069754.872791,
+    "seen": 1792262527.8476396,
+    "ast_hash": "f0620a45faea0153f827c9db564f36aa",
+    "semantic_hash": "f0620a45faea0153f827c9db564f36aa"
+  },
+  "src/lane-roles.js": {
+    "mtime": 1789053399.9667268,
+    "seen": 1792262527.8476405,
+    "ast_hash": "772c491f4875cadb7ab82a24503e0059",
+    "semantic_hash": "772c491f4875cadb7ab82a24503e0059"
+  },
+  "src/lane-roles.test.js": {
+    "mtime": 1789053411.4899752,
+    "seen": 1792262527.8476412,
+    "ast_hash": "7e62663575e9e86974b5e55c3e355360",
+    "semantic_hash": "7e62663575e9e86974b5e55c3e355360"
+  },
+  "src/mysql-database.js": {
+    "mtime": 1792264053.6630163,
+    "seen": 1792264778.1994033,
+    "ast_hash": "ff90b86ed1c2ae879698b2dde608b264",
+    "semantic_hash": ""
+  },
+  "src/mysql-database.test.js": {
+    "mtime": 1792264643.955484,
+    "seen": 1792264778.1994047,
+    "ast_hash": "120293031fdb233e3b997551ef731f21",
+    "semantic_hash": ""
+  },
+  "src/mysql-schema.sql": {
+    "mtime": 1789059298.2924025,
+    "seen": 1792262527.8476439,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "src/patch-notes.js": {
+    "mtime": 1789055967.187712,
+    "seen": 1792262527.847645,
+    "ast_hash": "46876709f1f0c07f4cfdaa10873a7938",
+    "semantic_hash": "46876709f1f0c07f4cfdaa10873a7938"
+  },
+  "src/patch-notes.test.js": {
+    "mtime": 1789055166.8799076,
+    "seen": 1792262527.8476458,
+    "ast_hash": "189e461c1379966eefc101804cfffd36",
+    "semantic_hash": "189e461c1379966eefc101804cfffd36"
+  },
+  "src/rank-roles.js": {
+    "mtime": 1789337197.34699,
+    "seen": 1792262527.8476467,
+    "ast_hash": "2826a342440e0b452cdd3e8bb6d1fade",
+    "semantic_hash": "2826a342440e0b452cdd3e8bb6d1fade"
+  },
+  "src/rank-roles.test.js": {
+    "mtime": 1789337215.3138664,
+    "seen": 1792262527.8476477,
+    "ast_hash": "d2fdbf3034173c044aacf5f37c2f069a",
+    "semantic_hash": "d2fdbf3034173c044aacf5f37c2f069a"
+  },
+  "src/services/riot.js": {
+    "mtime": 1792264020.5104327,
+    "seen": 1792264778.200035,
+    "ast_hash": "0939daa33d6e64045ffe6ba12ff7e49a",
+    "semantic_hash": ""
+  },
+  "src/services/valorant.js": {
+    "mtime": 1792264040.439473,
+    "seen": 1792264778.2000365,
+    "ast_hash": "ba1bc82b8392c502170bff1475f6d15d",
+    "semantic_hash": ""
+  },
+  "src/setup-link-panel.js": {
+    "mtime": 1795033650.6235924,
+    "seen": 1795033663.5092802,
+    "ast_hash": "559f42d8b1f7d332bd9af412cd970a2a",
+    "semantic_hash": ""
+  },
+  "src/test-ranked.js": {
+    "mtime": 1788986059.28944,
+    "seen": 1792262527.8476524,
+    "ast_hash": "06ef3245022f2782f572a337445496c7",
+    "semantic_hash": "06ef3245022f2782f572a337445496c7"
+  },
+  "src/valorant-dashboard.js": {
+    "mtime": 1792264246.3542762,
+    "seen": 1792264778.2003353,
+    "ast_hash": "147bcd41b73788b092f199efd2d4bafe",
+    "semantic_hash": ""
+  },
+  "src/valorant-roles.js": {
+    "mtime": 1789488007.0871637,
+    "seen": 1792262527.8476543,
+    "ast_hash": "7d9013cdb5355d1e7c519e4379471e7a",
+    "semantic_hash": "7d9013cdb5355d1e7c519e4379471e7a"
+  },
+  "src/valorant.test.js": {
+    "mtime": 1792264220.3153708,
+    "seen": 1792264778.2004828,
+    "ast_hash": "615227d527441a27d799475abe88807c",
+    "semantic_hash": ""
+  },
+  "src/voice-rooms.js": {
+    "mtime": 1788997142.266114,
+    "seen": 1792262527.8476562,
+    "ast_hash": "ccae1bcba19e2840f13352de4afa9753",
+    "semantic_hash": "ccae1bcba19e2840f13352de4afa9753"
+  },
+  "src/voice-rooms.test.js": {
+    "mtime": 1789052103.3290637,
+    "seen": 1792262527.847657,
+    "ast_hash": "5b8e4c8cce0b1e911023a181a610d25d",
+    "semantic_hash": "5b8e4c8cce0b1e911023a181a610d25d"
+  },
+  ".claude/CLAUDE.md": {
+    "mtime": 1792262299.1267881,
+    "seen": 1792262527.8476577,
+    "ast_hash": "9b31786b637be3c13978bec4c2330752",
+    "semantic_hash": "9b31786b637be3c13978bec4c2330752"
+  },
+  "CLAUDE.md": {
+    "mtime": 1792262299.1348827,
+    "seen": 1792262527.8476586,
+    "ast_hash": "67d88e9d0760c3ba54c75dfd9551c1c5",
+    "semantic_hash": "67d88e9d0760c3ba54c75dfd9551c1c5"
+  },
+  "DEPLOY.txt": {
+    "mtime": 1792265920.271304,
+    "seen": 1792265940.5078428,
+    "ast_hash": "6226d427388dc078719ec8d46d532e97",
+    "semantic_hash": ""
+  },
+  "MYSQL-SETUP.txt": {
+    "mtime": 1788997250.7051206,
+    "seen": 1792262527.8476605,
+    "ast_hash": "186a5687ada9fd773d9ca7f8101005d0",
+    "semantic_hash": "186a5687ada9fd773d9ca7f8101005d0"
+  },
+  "README.md": {
+    "mtime": 1788988565.9470508,
+    "seen": 1792262527.8476613,
+    "ast_hash": "a75b8ab55b42e5318fb6c22f330ca43d",
+    "semantic_hash": "a75b8ab55b42e5318fb6c22f330ca43d"
+  },
+  "src/bot-status.js": {
+    "mtime": 1792264081.7496216,
+    "seen": 1792264778.197957,
+    "ast_hash": "aaebdcffa2e4cae80e6c1fa217271af4",
+    "semantic_hash": ""
+  },
+  "src/channels.js": {
+    "mtime": 1792265920.2609162,
+    "seen": 1792265940.4971662,
+    "ast_hash": "08204ead3f0eacd295f6fc181d12b20e",
+    "semantic_hash": ""
+  },
+  "src/commands.js": {
+    "mtime": 1792264280.06347,
+    "seen": 1792264778.1981428,
+    "ast_hash": "f23b41c33168242abe1aaa03e96c1b87",
+    "semantic_hash": ""
+  },
+  "src/features.test.js": {
+    "mtime": 1792265920.2624547,
+    "seen": 1792265940.4984796,
+    "ast_hash": "fe82b4f9a54d06bee5aab092a735531b",
+    "semantic_hash": ""
+  },
+  "src/game-events.js": {
+    "mtime": 1792264453.020971,
+    "seen": 1792264778.19831,
+    "ast_hash": "d14acd12bcdf448ef12c3f90ac54dea0",
+    "semantic_hash": ""
+  },
+  "src/inhouse.js": {
+    "mtime": 1792264326.232099,
+    "seen": 1792264778.198689,
+    "ast_hash": "de0d1d6f8032db3065ead895a57db0cd",
+    "semantic_hash": ""
+  },
+  "src/ladder.js": {
+    "mtime": 1792264317.2676091,
+    "seen": 1792264778.1989284,
+    "ast_hash": "4b9a99d726164ca62a36795fb8ac1a05",
+    "semantic_hash": ""
+  },
+  "src/lfg.js": {
+    "mtime": 1792264386.6184442,
+    "seen": 1792264778.1993923,
+    "ast_hash": "f40f3b8f9110a04d101336f79757e7e8",
+    "semantic_hash": ""
+  },
+  "src/live-games.js": {
+    "mtime": 1792264189.5218508,
+    "seen": 1792264778.1993961,
+    "ast_hash": "7c490d592537a486f4c483328dae98b2",
+    "semantic_hash": ""
+  },
+  "src/lp-race.js": {
+    "mtime": 1792264153.0568638,
+    "seen": 1792264778.1993976,
+    "ast_hash": "1e3a36e831096ac5676f29d345d934bb",
+    "semantic_hash": ""
+  },
+  "src/mastery.js": {
+    "mtime": 1792264408.4627666,
+    "seen": 1792264778.199399,
+    "ast_hash": "56554ab42f8c4bd3b258875bf76285fc",
+    "semantic_hash": ""
+  },
+  "src/member-cleanup.js": {
+    "mtime": 1792264436.403826,
+    "seen": 1792264778.1994,
+    "ast_hash": "73df43565655a8e287d0f689cfbb3cda",
+    "semantic_hash": ""
+  },
+  "src/movement.js": {
+    "mtime": 1792264198.00253,
+    "seen": 1792264778.1994011,
+    "ast_hash": "d1709fd5d788119813260d4ba751203d",
+    "semantic_hash": ""
+  },
+  "src/profile-card.js": {
+    "mtime": 1792264737.4414566,
+    "seen": 1792264778.1997197,
+    "ast_hash": "9a703992e05da0a356b1e2355b7ece24",
+    "semantic_hash": ""
+  },
+  "src/services/rate-limiter.js": {
+    "mtime": 1792264020.4531648,
+    "seen": 1792264778.2000327,
+    "ast_hash": "b445e123f182d79746ebbc5c8c766361",
+    "semantic_hash": ""
+  },
+  "src/status.js": {
+    "mtime": 1792264436.2960656,
+    "seen": 1792264778.2001843,
+    "ast_hash": "f460d8c51fef27de9596c17ffd612ecb",
+    "semantic_hash": ""
+  },
+  "src/temp-voice.js": {
+    "mtime": 1792264280.106202,
+    "seen": 1792264778.2001863,
+    "ast_hash": "dd8ccdc0641de0307a65738b10ae23cb",
+    "semantic_hash": ""
+  },
+  "src/welcome.js": {
+    "mtime": 1792264436.3497958,
+    "seen": 1792264778.2009957,
+    "ast_hash": "1eed7c0cc12e93e762ec426cd0d2d7b8",
+    "semantic_hash": ""
+  },
+  "index.js": {
+    "mtime": 1795033650.6205928,
+    "seen": 1795033663.5009205,
+    "ast_hash": "4ea5b0f0cc806bbef498718ce7810b57",
+    "semantic_hash": ""
+  }
+}
