@@ -12,7 +12,9 @@ let client;
 
 http.createServer((request, response) => {
     const online = Boolean(client?.isReady());
-    response.writeHead(online ? 200 : 503, { "Content-Type": "application/json" });
+    // Always 200: the host's proxy replaces error codes with its own
+    // "Service Unavailable" page and may treat the app as broken.
+    response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify({
         bot: online ? "online" : "offline",
         user: online ? client.user.tag : null,
