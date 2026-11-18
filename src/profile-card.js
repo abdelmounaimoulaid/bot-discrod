@@ -5,6 +5,9 @@ const { EmbedBuilder, AttachmentBuilder, escapeMarkdown } = require('discord.js'
 const { leagueLabel, leagueEmblemUrl, valorantRankIconUrl, progressBar, APEX_TIERS } = require('./ladder');
 const { LANES } = require('./lane-roles');
 const { VALORANT_AGENT_ROLES } = require('./valorant-roles');
+const { summarizeHistory } = require('./rank-history');
+
+const TREND_DAYS = 30;
 
 // @napi-rs/canvas is an optional dependency: if it failed to install on the host,
 // /profile still works and sends an embed instead of an image.
@@ -172,8 +175,67 @@ async function drawPanel(ctx, x, y, width, height, summary) {
     ctx.fillText(summary.extra, textX, y + 156);
 }
 
-async function renderCard({ user, displayName, lol, val }) {
-    const width = 900, height = 360;
+// One line per game over the last 30 days, each scaled to its own range so a
+// League climb and a VALORANT climb are both readable on the same panel.
+function drawTrendPanel(ctx, x, y, width, height, trends) {
+    const font = fontFamily();
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    roundedRect(ctx, x, y, width, height, 18);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold 17px ${font}`;
+    ctx.fillText(`📈 Last ${TREND_DAYS} days`, x + 24, y + 32);
+
+    let legendX = x + 200;
+    const chartX = x + 24, chartY = y + 50, chartWidth = width - 48, chartHeight = height - 70;
+    for (const trend of trends) {
+        const { values } = trend.history;
+        const min = Math.min(...values), max = Math.max(...values);
+        const span = max - min || 1;
+        ctx.strokeStyle = trend.accent;
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        values.forEach((value, i) => {
+            const px = chartX + (i / (values.length - 1)) * chartWidth;
+            const py = max === min ? chartY + chartHeight / 2 : chartY + chartHeight - ((value - min) / span) * chartHeight;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+
+        const change = trend.history.change;
+        ctx.fillStyle = trend.accent;
+        ctx.font = `bold 16px ${font}`;
+        const label = `${trend.label} ${change > 0 ? '+' : ''}${change} ${trend.unit}`;
+        ctx.fillText(label, legendX, y + 32);
+        legendX += ctx.measureText(label).width + 28;
+    }
+}
+
+function trendText(trends) {
+    return trends.map(trend => {
+        const change = trend.history.change;
+        return `${trend.label} ${trend.history.spark} **${change > 0 ? '+' : ''}${change} ${trend.unit}**`;
+    }).join('\n');
+}
+
+async function loadTrends(rankHistory, discordId, { lol, val }) {
+    if (!rankHistory) return [];
+    const trends = [];
+    for (const [game, summary, label, unit] of [['LOL', lol, 'League', 'LP'], ['VAL', val, 'VALORANT', 'RR']]) {
+        if (!summary) continue;
+        try {
+            const history = summarizeHistory(await rankHistory.history(game, discordId, TREND_DAYS));
+            if (history) trends.push({ game, label, unit, accent: summary.accent, history });
+        } catch (error) {
+            console.warn(`[Profile] Could not read ${game} history:`, error.message);
+        }
+    }
+    return trends;
+}
+
+async function renderCard({ user, displayName, lol, val, trends = [] }) {
+    const width = 900, height = trends.length ? 540 : 360;
     const image = canvas.createCanvas(width, height);
     const ctx = image.getContext('2d');
     const font = fontFamily();
@@ -216,10 +278,11 @@ async function renderCard({ user, displayName, lol, val }) {
 
     await drawPanel(ctx, 30, 170, 410, 170, lol);
     await drawPanel(ctx, 460, 170, 410, 170, val);
+    if (trends.length) drawTrendPanel(ctx, 30, 360, 840, 160, trends);
     return image.encode('png');
 }
 
-function buildProfileEmbed({ user, displayName, lol, val }) {
+function buildProfileEmbed({ user, displayName, lol, val, trends = [] }) {
     const embed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setAuthor({ name: displayName, iconURL: user.displayAvatarURL() })
@@ -233,12 +296,13 @@ function buildProfileEmbed({ user, displayName, lol, val }) {
             inline: true
         });
     }
+    if (trends.length) embed.addFields({ name: `📈 Last ${TREND_DAYS} days`, value: trendText(trends) });
     const icon = lol?.icon || val?.icon;
     if (icon) embed.setThumbnail(icon);
     return embed;
 }
 
-async function handleProfileCommand(interaction, db) {
+async function handleProfileCommand(interaction, db, { rankHistory } = {}) {
     const user = interaction.options.getUser('user') || interaction.user;
     await interaction.deferReply();
     const [lolRow, valRow] = await Promise.all([
@@ -251,6 +315,7 @@ async function handleProfileCommand(interaction, db) {
     }
     const member = interaction.guild ? await interaction.guild.members.fetch(user.id).catch(() => null) : null;
     const data = { user, displayName: member?.displayName || user.globalName || user.username, lol: leagueSummary(lolRow), val: valorantSummary(valRow) };
+    data.trends = await loadTrends(rankHistory, user.id, data);
     if (canDraw()) {
         try {
             const png = await renderCard(data);
@@ -263,4 +328,4 @@ async function handleProfileCommand(interaction, db) {
     await interaction.editReply({ embeds: [buildProfileEmbed(data)], allowedMentions: { parse: [] } });
 }
 
-module.exports = { handleProfileCommand, leagueSummary, valorantSummary, buildProfileEmbed, renderCard, canDraw };
+module.exports = { handleProfileCommand, leagueSummary, valorantSummary, buildProfileEmbed, renderCard, canDraw, trendText };

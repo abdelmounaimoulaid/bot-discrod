@@ -147,6 +147,6 @@ test('profile card renders a PNG when canvas is available', async t => {
 });
 
 test('slash command definitions are valid for registration', () => {
-    assert.deepEqual(COMMANDS.map(command => command.name), ['profile', 'mastery', 'inhouse', 'lfg', 'status', 'welcome-preview']);
+    assert.deepEqual(COMMANDS.map(command => command.name), ['profile', 'mastery', 'inhouse', 'lfg', 'leaderboard', 'unlink', 'refresh', 'setchannel', 'status', 'welcome-preview']);
     for (const command of COMMANDS) assert.ok(command.description.length <= 100);
 });

@@ -15,6 +15,7 @@ async function fetchMemberState(guild, discordId) {
 async function removeDeparted(db, discordId, reason) {
     await db.prepare('DELETE FROM players WHERE discord_id = ?').run(discordId);
     await db.prepare('DELETE FROM valorant_players WHERE discord_id = ?').run(discordId);
+    await db.prepare('DELETE FROM rank_history WHERE discord_id = ?').run(discordId).catch(() => {});
     console.log(`🧹 Removed linked accounts for ${discordId} (${reason}).`);
 }
 
