@@ -3,8 +3,32 @@
 const { DatabaseSync } = require("node:sqlite");
 const path = require("path");
 
-// Keep the file next to the project, whatever directory the host starts from.
-const db = new DatabaseSync(path.join(__dirname, "..", "leaderboard.db"));
+const fs = require("fs");
+const os = require("os");
+
+// Hostinger deploys every build into a fresh folder, so a database stored
+// next to the code is lost (or reset to the copy in git) on each deploy.
+// Store it in the home directory instead, or wherever DB_PATH points.
+const DB_PATH = process.env.DB_PATH ||
+    path.join(os.homedir(), "bot-data", "leaderboard.db");
+
+// The copy that used to live next to the code (and is still in git).
+const LEGACY_DB_PATH = path.join(__dirname, "..", "leaderboard.db");
+
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
+// First start with the new location: carry the existing players over.
+// VACUUM INTO also folds in any data still sitting in the -wal file.
+if (!fs.existsSync(DB_PATH) && fs.existsSync(LEGACY_DB_PATH) &&
+    path.resolve(DB_PATH) !== path.resolve(LEGACY_DB_PATH)) {
+    const legacy = new DatabaseSync(LEGACY_DB_PATH);
+    legacy.prepare("VACUUM INTO ?").run(DB_PATH);
+    legacy.close();
+    console.log(`📦 Copied existing players from ${LEGACY_DB_PATH}`);
+}
+
+const db = new DatabaseSync(DB_PATH);
+console.log(`🗄️ Database: ${DB_PATH}`);
 
 db.exec("PRAGMA journal_mode = WAL");
 
