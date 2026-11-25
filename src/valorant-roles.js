@@ -88,6 +88,11 @@ function findValorantRankRole(guild, tierName) {
     });
 }
 
+function isUnratedTier(tierName) {
+    const clean = String(tierName || '').split(' ')[0].toLowerCase();
+    return !clean || clean === 'unrated' || clean === 'unranked';
+}
+
 async function syncValorantGameRole(member) {
     if (!member) return;
     try {
@@ -113,6 +118,15 @@ async function syncValorantRankRole(member, tierName) {
         const name = r.name.toLowerCase();
         return VALORANT_TIERS.some(tier => new RegExp(`\\b${tier}\\b`, 'i').test(name));
     });
+
+    // HenrikDev reports "Unrated" whenever it has no current rank data (404,
+    // empty current_data), which happens to ranked players too. Never swap a
+    // real rank role for Unranked; only a real rank from the API replaces it.
+    if (isUnratedTier(tierName)) {
+        const keepsRealRank = Array.from(allRankRoles.values ? allRankRoles.values() : allRankRoles)
+            .some(r => member.roles.cache.has(r.id) && !/\b(?:unranked|unrated)\b/i.test(r.name));
+        if (keepsRealRank) return;
+    }
 
     const rolesToRemove = allRankRoles.filter(r =>
         member.roles.cache.has(r.id) && (!targetRole || r.id !== targetRole.id)

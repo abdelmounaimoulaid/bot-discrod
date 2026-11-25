@@ -148,3 +148,42 @@ test('fetchValorantPlayerData still reports Unrated when the player has no MMR (
         process.env.VALORANT_API_KEY = originalKey;
     }
 });
+
+test('syncValorantRankRole keeps a real rank role when the API reports Unrated', async () => {
+    const diamond = { id: 'diamond', name: 'ʚ  : Diamond VAL' };
+    const unranked = { id: 'unranked', name: 'ʚ  : Unranked VAL' };
+    const gameRole = { id: 'game-role', name: 'ʚ : Vaorant' };
+    const guildRoles = [diamond, unranked, gameRole];
+    const memberRoles = new Set([diamond.id, gameRole.id]);
+    const removed = [];
+    const assigned = [];
+    const member = {
+        id: 'user-1',
+        guild: { roles: { cache: {
+            get: id => guildRoles.find(r => r.id === id),
+            find: fn => guildRoles.find(fn),
+            filter: fn => guildRoles.filter(fn)
+        } } },
+        roles: {
+            cache: { has: id => memberRoles.has(id) },
+            add: async r => { assigned.push(r.name); memberRoles.add(r.id); },
+            remove: async r => { removed.push(r.name); memberRoles.delete(r.id); }
+        }
+    };
+
+    await syncValorantRankRole(member, 'Unrated');
+    assert.deepEqual(removed, []);
+    assert.deepEqual(assigned, []);
+
+    // A player who only has Unranked VAL still gets it kept, not doubled.
+    memberRoles.delete(diamond.id);
+    memberRoles.add(unranked.id);
+    await syncValorantRankRole(member, 'Unrated');
+    assert.deepEqual(removed, []);
+    assert.deepEqual(assigned, []);
+
+    // A real rank from the API still replaces the old rank role.
+    await syncValorantRankRole(member, 'Diamond 1');
+    assert.deepEqual(removed, ['ʚ  : Unranked VAL']);
+    assert.deepEqual(assigned, ['ʚ  : Diamond VAL']);
+});
